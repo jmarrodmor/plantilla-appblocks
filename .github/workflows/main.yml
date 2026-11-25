@@ -1,0 +1,53 @@
+name: Compilar plantilla APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compilar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el proyecto
+        uses: actions/checkout@v4
+
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Compilar la plantilla
+        run: gradle --no-daemon assembleRelease
+
+      - name: Preparar los archivos para descargar
+        run: |
+          set -e
+          mkdir salida
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "Herramientas: $BT"
+          cp app/build/outputs/apk/release/app-release-unsigned.apk salida/plantilla-appblocks.apk
+          keytool -genkeypair -keystore prueba.jks -storepass prueba123 -keypass prueba123 -alias prueba \
+            -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=AppBlocks prueba"
+          "$BT/zipalign" -p -f 4 salida/plantilla-appblocks.apk alineada.apk
+          "$BT/apksigner" sign --ks prueba.jks --ks-pass pass:prueba123 --key-pass pass:prueba123 \
+            --out salida/PRUEBA-instalar-en-el-movil.apk alineada.apk
+          unzip -lv salida/plantilla-appblocks.apk > salida/contenido.txt
+          "$BT/aapt2" dump xmltree --file AndroidManifest.xml salida/plantilla-appblocks.apk > salida/manifiesto.txt || true
+          "$BT/aapt2" dump badging salida/plantilla-appblocks.apk > salida/resumen.txt || true
+          "$BT/apksigner" verify --verbose salida/PRUEBA-instalar-en-el-movil.apk > salida/firma-prueba.txt || true
+          ls -la salida
+
+      - name: Guardar el resultado
+        uses: actions/upload-artifact@v4
+        with:
+          name: plantilla-appblocks
+          path: salida/
