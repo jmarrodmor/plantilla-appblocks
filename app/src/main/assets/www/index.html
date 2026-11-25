@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Plantilla de AppBlocks</title>
+<style>
+  html,body{margin:0;height:100%;background:#E7ECF6;font-family:system-ui,-apple-system,Roboto,sans-serif;color:#262A40}
+  header{background:#3E77BB;color:#fff;padding:22px 20px 18px}
+  header h1{margin:0;font-size:24px}
+  header p{margin:6px 0 0;opacity:.9;font-size:14px}
+  main{padding:16px;display:flex;flex-direction:column;gap:10px}
+  button{font:600 16px system-ui,Roboto,sans-serif;border:0;border-radius:12px;padding:14px;background:#fff;color:#262A40;text-align:left;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  button:active{background:#dfeafe}
+  #res{background:#fff;border-radius:12px;padding:14px;min-height:60px;white-space:pre-wrap;font-size:14px}
+  img{max-width:100%;border-radius:12px;display:none}
+  .ok{color:#1E7F35;font-weight:700}
+</style>
+</head>
+<body>
+<header><h1>Plantilla de AppBlocks</h1><p>Si ves esta pantalla, la plantilla funciona. Prueba los botones.</p></header>
+<main>
+  <button id="bMem">1. Contador que se guarda: <b id="cuenta">0</b></button>
+  <button id="bVib">2. Vibrar</button>
+  <button id="bGps">3. Mi ubicación (GPS)</button>
+  <button id="bFoto">4. Hacer una foto</button>
+  <input type="file" id="foto" accept="image/*" capture="environment" hidden>
+  <button id="bPant">5. Ir a otra pantalla (luego pulsa Atrás)</button>
+  <button id="bWeb">6. Abrir una web en el navegador</button>
+  <div id="res">Resultados de las pruebas…</div>
+  <img id="img" alt="Foto hecha">
+</main>
+<script>
+var res=document.getElementById('res');
+function ver(t,ok){res.innerHTML=(ok?'<span class="ok">✔ </span>':'')+t;}
+var n=Number(localStorage.getItem('cuenta')||0);document.getElementById('cuenta').textContent=n;
+document.getElementById('bMem').onclick=function(){n++;localStorage.setItem('cuenta',n);document.getElementById('cuenta').textContent=n;ver('Contador: '+n+'. Cierra la app y ábrela: debe seguir en '+n+'.',true);};
+document.getElementById('bVib').onclick=function(){if(navigator.vibrate&&navigator.vibrate(400))ver('Debería haber vibrado.',true);else ver('Este móvil no permite vibrar desde la app.');};
+document.getElementById('bGps').onclick=function(){
+  if(!navigator.geolocation){ver('No hay GPS disponible.');return;}
+  ver('Buscando ubicación…');
+  navigator.geolocation.getCurrentPosition(function(p){ver('Latitud '+p.coords.latitude.toFixed(5)+'\nLongitud '+p.coords.longitude.toFixed(5)+'\nPrecisión '+Math.round(p.coords.accuracy)+' m',true);},
+    function(e){ver('No se pudo obtener la ubicación: '+e.message);},{enableHighAccuracy:true,timeout:20000});
+};
+document.getElementById('bFoto').onclick=function(){document.getElementById('foto').click();};
+document.getElementById('foto').onchange=function(){var f=this.files[0];if(!f)return;var im=document.getElementById('img');im.src=URL.createObjectURL(f);im.style.display='block';ver('Foto recibida ('+Math.round(f.size/1024)+' KB).',true);};
+document.getElementById('bPant').onclick=function(){history.pushState({p:2},'');document.querySelector('header h1').textContent='Pantalla 2';ver('Ahora pulsa el botón Atrás del móvil: debe volver aquí sin cerrar la app.');};
+window.addEventListener('popstate',function(){document.querySelector('header h1').textContent='Plantilla de AppBlocks';ver('Has vuelto atrás correctamente.',true);});
+document.getElementById('bWeb').onclick=function(){location.href='https://www.wikipedia.org';};
+</script>
+</body>
+</html>
